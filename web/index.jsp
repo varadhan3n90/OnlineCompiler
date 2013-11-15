@@ -52,8 +52,10 @@
             }
             function postCode(){
                 $('#submit').hide();            
-                var codePart = document.getElementById('code').innerHTML;
-                $.post('/OnlineCompiler/Compiler',{code:codePart}) .done(function( data ) {
+                var codePart = document.getElementById('code').value;
+                var lang = document.getElementById('lang').value;
+                var ques = document.getElementById('qid').value;
+                $.post('/OnlineCompiler/Compiler',{code:codePart,language:lang,qno:ques}) .done(function( data ) {
                     $('#submit').show();
                     document.getElementById('status').innerHTML = data;
                 });

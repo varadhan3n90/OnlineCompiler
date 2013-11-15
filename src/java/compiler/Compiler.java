@@ -6,8 +6,15 @@
 
 package compiler;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -20,14 +27,93 @@ import javax.servlet.http.HttpServletResponse;
  */
 @WebServlet(name = "Compiler", urlPatterns = {"/Compiler"})
 public class Compiler extends HttpServlet {
-    
+    File sourceFile;
     String message;
-    private void precompile(){
+    private void precompile(String qno,String language,String snippet){
         // TODO: Create a temporary file and then add the contents.
+        sourceFile = new File("/cpc/ghj.c");
+        FileOutputStream fos = null;
+        try {
+            fos = new FileOutputStream(sourceFile);
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        sourceFile.deleteOnExit();
+        try {
+            if(sourceFile.exists()){
+                sourceFile.delete();
+            }
+            sourceFile.createNewFile();
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        File header = new File("C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\"+language+"\\head"+qno);
+        if(header.exists()){
+            try {
+                FileInputStream fis = new FileInputStream(header);
+                
+                int x = 0;                
+                while((x=fis.read())!=-1){
+                    fos.write(x);
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+        }
+        try {
+            // Insert code snippet
+            fos.write(snippet.getBytes());
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        // Insert tail
+        File tail = new File("C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\"+language+"\\tail"+qno);
+        if(tail.exists()){
+            try {
+                FileInputStream fis = new FileInputStream(tail);                
+                int x = 0;                
+                while((x=fis.read())!=-1){
+                    fos.write(x);;
+                }
+                fis.close();
+                fos.close();
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (IOException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            
+        }
+         System.out.println("*****************************************");
+        System.out.println(tail.exists()+" "+tail.getAbsolutePath());        
+        System.out.println("*****************************************");
+        message = "precompile over";       
     }
     
-    private void compile(){
-        // TODO: Get instructions on how to compile.
+    private boolean compile(){
+        Runtime rt = Runtime.getRuntime();
+        String cmd = "gcc c:\\cpc\\"+sourceFile.getName();
+        try {
+            Process p = rt.exec(cmd);
+            p.waitFor();
+            if(p.exitValue()!=0){
+                Scanner sc = new Scanner(p.getErrorStream());
+                while(sc.hasNext()){
+                    message += sc.nextLine();
+                }
+                return false;
+            }
+            message = "Compile success";
+            return true;
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return false;
     }
     
     private void run(){
@@ -52,8 +138,17 @@ public class Compiler extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         PrintWriter out = response.getWriter();
         String code = request.getParameter("code");
-        try {            
-            out.println("success in compiling "+code);
+        String language = request.getParameter("language");
+        String qno = request.getParameter("qno");
+        precompile(qno, language, code);
+        
+        try {
+            if(!compile()){
+                out.println("failure");
+            }else{
+                out.println("compiled");
+            }
+            out.println("Compile message"+message);
         } finally {
             out.close();
         }
