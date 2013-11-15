@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,25 +30,33 @@ import javax.servlet.http.HttpServletResponse;
 public class Compiler extends HttpServlet {
     File sourceFile;
     String message;
-    private void precompile(String qno,String language,String snippet){
-        // TODO: Create a temporary file and then add the contents.
-        sourceFile = new File("/cpc/ghj.c");
+    private static final String CODE_TEMPLATE_PATH = "C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\";
+    private static final String SOURCE_FILE_BASE_PATH = "C:\\cpc\\";
+    private String sourceFileName = "";
+    private String outputFileName = "";
+    private void precompile(String qno,String language,String snippet){        
+        Random generator = new Random(System.currentTimeMillis());
+        sourceFileName = generator.nextInt(200000)+"";
+        outputFileName = sourceFileName;
+        sourceFileName += ".c";
+        sourceFile = new File(SOURCE_FILE_BASE_PATH+sourceFileName);
         FileOutputStream fos = null;
         try {
             fos = new FileOutputStream(sourceFile);
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        sourceFile.deleteOnExit();
+        
         try {
             if(sourceFile.exists()){
                 sourceFile.delete();
             }
             sourceFile.createNewFile();
+            sourceFile.deleteOnExit();
         } catch (IOException ex) {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
         }
-        File header = new File("C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\"+language+"\\head"+qno);
+        File header = new File(CODE_TEMPLATE_PATH+language+"\\head"+qno);
         if(header.exists()){
             try {
                 FileInputStream fis = new FileInputStream(header);
@@ -70,13 +79,13 @@ public class Compiler extends HttpServlet {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
         }
         // Insert tail
-        File tail = new File("C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\"+language+"\\tail"+qno);
+        File tail = new File(CODE_TEMPLATE_PATH+language+"\\tail"+qno);
         if(tail.exists()){
             try {
                 FileInputStream fis = new FileInputStream(tail);                
                 int x = 0;                
                 while((x=fis.read())!=-1){
-                    fos.write(x);;
+                    fos.write(x);
                 }
                 fis.close();
                 fos.close();
@@ -87,15 +96,15 @@ public class Compiler extends HttpServlet {
             }
             
         }
-         System.out.println("*****************************************");
-        System.out.println(tail.exists()+" "+tail.getAbsolutePath());        
-        System.out.println("*****************************************");
-        message = "precompile over";       
+        //System.out.println("*****************************************");
+        //System.out.println(tail.exists()+" "+tail.getAbsolutePath());        
+        //System.out.println("*****************************************");
+        //message = "precompile over";       
     }
     
     private boolean compile(){
-        Runtime rt = Runtime.getRuntime();
-        String cmd = "gcc c:\\cpc\\"+sourceFile.getName();
+        Runtime rt = Runtime.getRuntime();        
+        String cmd = "gcc "+SOURCE_FILE_BASE_PATH+sourceFile.getName()+" -o "+SOURCE_FILE_BASE_PATH+outputFileName;
         try {
             Process p = rt.exec(cmd);
             p.waitFor();
@@ -104,20 +113,58 @@ public class Compiler extends HttpServlet {
                 while(sc.hasNext()){
                     message += sc.nextLine();
                 }
+                sourceFile.delete();
                 return false;
             }
             message = "Compile success";
+            sourceFile.delete();
             return true;
         } catch (IOException ex) {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
         } catch (InterruptedException ex) {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
         }
+        if(sourceFile.exists()){
+            sourceFile.delete();
+        }
         return false;
     }
     
-    private void run(){
-        // TODO: Get instructions on how to run
+    private boolean runProgram(){
+        Runtime rt = Runtime.getRuntime();
+        String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
+        File opFile = new File(cmd);
+        try {
+            Process p = rt.exec(cmd);
+            p.getInputStream();
+            Thread.sleep(2000);
+            try{
+                int r = p.exitValue();
+                if(r==0){
+                    message = "Execution successful";
+                    if(opFile.exists()){
+                        opFile.delete();
+                    }
+                    return true;                    
+                }                
+            }catch(IllegalThreadStateException e){                
+                p.destroy();
+                if(opFile.exists()){
+                    opFile.delete();
+                }
+                message = "Time Limit exceeded";
+                return false;
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InterruptedException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        message = "Test case failed";
+        if(opFile.exists()){
+             opFile.delete();
+        }
+        return false;
     }
     
     private void getOutput(){
@@ -142,13 +189,11 @@ public class Compiler extends HttpServlet {
         String qno = request.getParameter("qno");
         precompile(qno, language, code);
         
-        try {
-            if(!compile()){
-                out.println("failure");
-            }else{
-                out.println("compiled");
+        try {            
+            if(compile()){
+                runProgram();
             }
-            out.println("Compile message"+message);
+            out.println(message);
         } finally {
             out.close();
         }

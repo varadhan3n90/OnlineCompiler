@@ -51,14 +51,20 @@
                 $.ajaxSetup({async:true});
             }
             function postCode(){
-                $('#submit').hide();            
+                $('#submit').hide();
+                document.getElementById('status').innerHTML = "";
                 var codePart = document.getElementById('code').value;
                 var lang = document.getElementById('lang').value;
                 var ques = document.getElementById('qid').value;
+                document.getElementById('lang').setAttribute("disabled","true");
+                document.getElementById('qid').setAttribute("disabled","true");
                 $.post('/OnlineCompiler/Compiler',{code:codePart,language:lang,qno:ques}) .done(function( data ) {
                     $('#submit').show();
                     document.getElementById('status').innerHTML = data;
+                    document.getElementById('lang').removeAttribute("disabled");
+                    document.getElementById('qid').removeAttribute("disabled");
                 });
+                
             }
             function changeQuestion(){                
                 getQuestion(document.getElementById('qid').value);
