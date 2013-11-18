@@ -12,6 +12,10 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
@@ -130,7 +134,7 @@ public class Compiler extends HttpServlet {
         return false;
     }
     
-    private boolean runProgram(){
+    private boolean runProgram(int qno,String username,String code){
         Runtime rt = Runtime.getRuntime();
         String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
         File opFile = new File(cmd);
@@ -142,6 +146,29 @@ public class Compiler extends HttpServlet {
                 int r = p.exitValue();
                 if(r==0){
                     message = "Execution successful";
+                    Connection conn = (Connection) getServletContext().getAttribute("dbconn");
+                    //1st part: get maximum test id
+                    String sql = "select max(testid) from moodle.mdl_prg_ques;";
+                    PreparedStatement ps = conn.prepareStatement(sql);
+                    ResultSet rs = ps.executeQuery();
+                    rs.next();
+                    int testID = rs.getInt(1);
+                    // 2nd part: Check if already completed
+                    sql = "select * from moodle.mdl_prg_test"+testID+" where qno=? and username=?";
+                    ps = conn.prepareStatement(sql);
+                    ps.setInt(1, qno);
+                    ps.setString(2, username);
+                    rs = ps.executeQuery();
+                    if(!rs.next()){
+                        //3rd part: insert into test<id> table that question is completed
+                        sql = "insert into moodle.mdl_prg_test"+testID+" values (?,?,?)";
+                        ps = conn.prepareStatement(sql);
+                        ps.setInt(1, qno);                    
+                        ps.setString(2, username);                        
+                        ps.setString(3,code);
+                        ps.executeUpdate();
+                    }
+                    //PreparedStatement ps = conn.prepareStatement(sql);
                     if(opFile.exists()){
                         opFile.delete();
                     }
@@ -154,6 +181,8 @@ public class Compiler extends HttpServlet {
                 }
                 message = "Time Limit exceeded";
                 return false;
+            } catch (SQLException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
             }
         } catch (IOException ex) {
             Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
@@ -166,11 +195,11 @@ public class Compiler extends HttpServlet {
         }
         return false;
     }
-    
+    /*
     private void getOutput(){
         // TODO: Finally check the status of program and return
     }
-
+    */
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
      * methods.
@@ -187,11 +216,12 @@ public class Compiler extends HttpServlet {
         String code = request.getParameter("code");
         String language = request.getParameter("language");
         String qno = request.getParameter("qno");
+        String username = (String) request.getSession().getAttribute("user");
         precompile(qno, language, code);
         
         try {            
             if(compile()){
-                runProgram();
+                runProgram(Integer.parseInt(qno),username,code);
             }
             out.println(message);
         } finally {

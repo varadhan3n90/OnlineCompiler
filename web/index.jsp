@@ -1,88 +1,54 @@
 <%-- 
     Document   : index
-    Created on : Nov 13, 2013, 12:11:24 PM
+    Created on : Nov 15, 2013, 5:08:17 PM
     Author     : Administrator
 --%>
 
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 <!DOCTYPE html>
 <html>
+    <%@page import="javax.servlet.http.*;"%>
+    <% 
+    if((!session.isNew())&&session.getAttribute("user")!=null)
+    {
+    RequestDispatcher rd=request.getRequestDispatcher("/start.jsp");
+    rd.forward(request, response);
+    }
+    %>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-        <title>Online Compiler</title>
+        <title>Coding round</title>
         <script type="text/javascript" lang="javascript" src="js/jquery.js"></script>
+        <script type="text/javascript" lang="javascript" src="js/md5js.js"></script>   
         <script type="text/javascript" lang="javascript">
-            function init(){
-                getQIDs();
-                getDefaultSnipetAndQuestion();
-            }
-            
-            function getDefaultSnipetAndQuestion(){
-                getQuestion(1);                
-                getCodeTemplate(1,document.getElementById('lang').value);
-            }
-            
-            function getQIDs(){
-                $.get("/OnlineCompiler/QuestionID",function(data){                    
-                    var totalQ = data;
-                    var options = document.getElementById('qid').innerHTML;
-                    for(i=1;i<=totalQ;i=i+1){
-                        options = options + '<option>'+i+'</option>';
-                    }
-                    document.getElementById('qid').innerHTML = options;
-                });
-            }
-            function getCodeTemplate(qid,lang){
-                $.get("code/"+lang+"/"+qid,function(data){
-                    document.getElementById('code').innerHTML = data;
-                });
-            }
-            function getQuestion(qid){
+            function validate(){
+                var uname = document.getElementById('uname').value;
+                var pwd = document.getElementById('pwd').value;
+                //alert(uname+' '+pwd)
                 $.ajaxSetup({async:false});
-                $.get('/OnlineCompiler/Question',{q:qid}).done(function(data){
-                    var qAndL = data.split('@#@');
-                    document.getElementById('questions').innerHTML = qAndL[0];
-                    var langList = qAndL[1].split(',');
-                    document.getElementById('lang').innerHTML = '';
-                    for(i=0;i<langList.length;i=i+1){
-                        document.getElementById('lang').innerHTML = document.getElementById('lang').innerHTML +'<option>'+langList[i]+'</option>';
-                    }
+                $.post('/OnlineCompiler/Login',{username:uname,password:pwd}).done(function(data){                    
+                     //alert(data);                   
                 });
                 $.ajaxSetup({async:true});
             }
-            function postCode(){
-                $('#submit').hide();
-                document.getElementById('status').innerHTML = "";
-                var codePart = document.getElementById('code').value;
-                var lang = document.getElementById('lang').value;
-                var ques = document.getElementById('qid').value;
-                document.getElementById('lang').setAttribute("disabled","true");
-                document.getElementById('qid').setAttribute("disabled","true");
-                $.post('/OnlineCompiler/Compiler',{code:codePart,language:lang,qno:ques}) .done(function( data ) {
-                    $('#submit').show();
-                    document.getElementById('status').innerHTML = data;
-                    document.getElementById('lang').removeAttribute("disabled");
-                    document.getElementById('qid').removeAttribute("disabled");
-                });
-                
-            }
-            function changeQuestion(){                
-                getQuestion(document.getElementById('qid').value);
-                getCodeTemplate(document.getElementById('qid').value,document.getElementById('lang').value);
-            }
         </script>
     </head>
-    <body onload="init();">
-        <h1>Coding round</h1>
-        <form method="post" action="">
-            <p>Select question
-                <select id="qid" onchange="changeQuestion();">
-            </select></p>
-            <h3>Question</h3>
-            <p id="questions"></p>        
-            <textarea name="code" id="code" rows="20" cols="100"></textarea>
-            <p>Select language: <select id="lang" onchange="changeQuestion();"></select></p><p><input type="button" value="Compile"  onclick="postCode();" id="submit"></p>
-            <div id="status"></div>
+    <body>
+    <center>
+        <form method="post" action="/OnlineCompiler/Login">
+            <table>
+                <tr>
+                    <td>Username: </td>
+                    <td><input type="text" name="uname" id="uname"></td>                    
+                </tr>
+                <tr>
+                    <td>Passowrd: </td>
+                    <td><input type="password" name="pwd" id="pwd"></td>
+                </tr>
+            </table>
+            <input type="submit" name="login" value="Login">
         </form>
+        <a href="register.jsp">Register</a>
+    </center>
     </body>
 </html>

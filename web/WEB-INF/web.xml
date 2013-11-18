@@ -12,6 +12,22 @@
         <servlet-name>Question</servlet-name>
         <servlet-class>compiler.Question</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>Login</servlet-name>
+        <servlet-class>compiler.Login</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>Register</servlet-name>
+        <servlet-class>Register</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>Logout</servlet-name>
+        <servlet-class>compiler.Logout</servlet-class>
+    </servlet>
+    <servlet>
+        <servlet-name>CheckCompleted</servlet-name>
+        <servlet-class>compiler.CheckCompleted</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>Compiler</servlet-name>
         <url-pattern>/Compiler</url-pattern>
@@ -23,6 +39,22 @@
     <servlet-mapping>
         <servlet-name>Question</servlet-name>
         <url-pattern>/Question</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Login</servlet-name>
+        <url-pattern>/Login</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Register</servlet-name>
+        <url-pattern>/Register</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>Logout</servlet-name>
+        <url-pattern>/Logout</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>CheckCompleted</servlet-name>
+        <url-pattern>/CheckCompleted</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

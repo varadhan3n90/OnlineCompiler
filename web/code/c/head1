@@ -1,3 +1,28 @@
 #include <stdio.h>
-// This is header
+#include <stdlib.h>
+struct node
+{
+        char data;
+        struct node *next;
+};
+char kthNodeFromLastOurs(struct node *head,int k)
+{
+        struct node *kth=head,*tmp=head;
+        int i=0;
+        while(tmp!=NULL&&i<k)
+        {
+                tmp=tmp->next;
+                i++;
+        }
+        if(i!=k)
+        {
+                return '!';
+        }
+        while(tmp!=NULL)
+        {
+                tmp=tmp->next;
+                kth=kth->next;
+        }
+        return kth->data;
+}
 
