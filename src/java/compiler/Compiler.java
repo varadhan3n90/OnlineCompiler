@@ -6,6 +6,7 @@
 
 package compiler;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -35,14 +36,21 @@ public class Compiler extends HttpServlet {
     File sourceFile;
     String message;
     private static final String CODE_TEMPLATE_PATH = "C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\";
+    private String inputFileName = "";
+    private String expectedOutputFileName = "";
     private static final String SOURCE_FILE_BASE_PATH = "C:\\cpc\\";
     private String sourceFileName = "";
     private String outputFileName = "";
+    private String programOutputFileName = "";
+    
     private void precompile(String qno,String language,String snippet){        
         Random generator = new Random(System.currentTimeMillis());
         sourceFileName = generator.nextInt(200000)+"";
         outputFileName = sourceFileName;
-        sourceFileName += ".c";
+        programOutputFileName = sourceFileName + ".txt";
+        sourceFileName += ".c";        
+        inputFileName = "i"+qno+".txt";
+        expectedOutputFileName = "o"+qno+".txt";
         sourceFile = new File(SOURCE_FILE_BASE_PATH+sourceFileName);
         FileOutputStream fos = null;
         try {
@@ -63,9 +71,8 @@ public class Compiler extends HttpServlet {
         File header = new File(CODE_TEMPLATE_PATH+language+"\\head"+qno);
         if(header.exists()){
             try {
-                FileInputStream fis = new FileInputStream(header);
-                
-                int x = 0;                
+                FileInputStream fis = new FileInputStream(header);                
+                int x;                
                 while((x=fis.read())!=-1){
                     fos.write(x);
                 }
@@ -136,15 +143,38 @@ public class Compiler extends HttpServlet {
     
     private boolean runProgram(int qno,String username,String code){
         Runtime rt = Runtime.getRuntime();
-        String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
-        File opFile = new File(cmd);
+        String exeFile = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
+        File f = new File(SOURCE_FILE_BASE_PATH+programOutputFileName);
         try {
-            Process p = rt.exec(cmd);
-            p.getInputStream();
-            Thread.sleep(2000);
+            f.createNewFile();
+        } catch (IOException ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe" + " < " + CODE_TEMPLATE_PATH+"c\\"+inputFileName;        
+        //System.out.println("------------------------------------");
+        //System.out.println(cmd);
+        //System.out.println("------------------------------------");
+        File opFile = new File(exeFile);
+        try {
+            Process p = rt.exec(cmd); 
             try{
+                Thread.sleep(2000);
                 int r = p.exitValue();
-                if(r==0){
+                DataInputStream dis = new DataInputStream(p.getInputStream());
+                int x;
+                FileOutputStream fos = new FileOutputStream(f);
+                while((x = dis.read())!=-1){
+                    fos.write(x);
+                }
+                fos.close();
+                Process p1 = rt.exec("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName);            
+                //System.out.println("----------------------------------");
+                //System.out.println("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName);
+                //System.out.println("----------------------------------");
+                p1.waitFor();
+                int q = p1.exitValue();                
+                
+                if(r==0&&q==0){
                     message = "Execution successful";
                     Connection conn = (Connection) getServletContext().getAttribute("dbconn");
                     //1st part: get maximum test id
@@ -193,6 +223,8 @@ public class Compiler extends HttpServlet {
         if(opFile.exists()){
              opFile.delete();
         }
+        if(f.exists())
+            f.delete();
         return false;
     }
     /*
@@ -217,6 +249,10 @@ public class Compiler extends HttpServlet {
         String language = request.getParameter("language");
         String qno = request.getParameter("qno");
         String username = (String) request.getSession().getAttribute("user");
+        if(username==null||username.isEmpty()){
+            out.println("Please login again.");
+            return;
+        }
         precompile(qno, language, code);
         
         try {            
