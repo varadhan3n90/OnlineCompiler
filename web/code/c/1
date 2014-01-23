@@ -1,4 +1,0 @@
-char kthNodeFromLast(struct node *head,int k)
-{
-        
-}
