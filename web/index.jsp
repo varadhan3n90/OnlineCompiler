@@ -32,6 +32,7 @@
                 $.ajaxSetup({async:true});
             }
         </script>
+        
     </head>
     <body>
     <center>

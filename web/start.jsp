@@ -17,8 +17,14 @@
     %>  
     
     <head>
+        
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
         <title>Online Compiler</title>
+        <style type="text/css">
+        .warning {
+                color: #FF0000;
+        }
+        </style>
         <script type="text/javascript" lang="javascript" src="js/jquery.js"></script>
         <script type="text/javascript" lang="javascript">
             function init(){
@@ -123,6 +129,7 @@
             <p><img src="/OnlineCompiler/images/completed.png" id="tick">
             <div id="status"></div></p>
         <p> NOTE: Code is not saved in our system so please save in your local system in case you want to switch to different question before completion of current.</p>
+        <p class="warning"> Your main function should always return 0 for successfull execution</p>
         </form>
     </body>
 </html>

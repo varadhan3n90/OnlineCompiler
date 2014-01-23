@@ -35,8 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 public class Compiler extends HttpServlet {
     File sourceFile;
     String message;
-    private static final String CODE_TEMPLATE_PATH = "C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\";
-    private String inputFileName = "";
+    private static final String CODE_TEMPLATE_PATH = "C:\\Users\\Administrator\\Documents\\NetBeansProjects\\OnlineCompiler\\web\\code\\";    
     private String expectedOutputFileName = "";
     private static final String SOURCE_FILE_BASE_PATH = "C:\\cpc\\";
     private String sourceFileName = "";
@@ -49,7 +48,6 @@ public class Compiler extends HttpServlet {
         outputFileName = sourceFileName;
         programOutputFileName = sourceFileName + ".txt";
         sourceFileName += ".c";        
-        inputFileName = "i"+qno+".txt";
         expectedOutputFileName = "o"+qno+".txt";
         sourceFile = new File(SOURCE_FILE_BASE_PATH+sourceFileName);
         FileOutputStream fos = null;
@@ -141,91 +139,105 @@ public class Compiler extends HttpServlet {
         return false;
     }
     
-    private boolean runProgram(int qno,String username,String code){
-        Runtime rt = Runtime.getRuntime();
-        String exeFile = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
-        File f = new File(SOURCE_FILE_BASE_PATH+programOutputFileName);
+    private boolean runProgram(int qno,String username,String code){        
         try {
-            f.createNewFile();
-        } catch (IOException ex) {
-            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe" + " < " + CODE_TEMPLATE_PATH+"c\\"+inputFileName;        
-        //System.out.println("------------------------------------");
-        //System.out.println(cmd);
-        //System.out.println("------------------------------------");
-        File opFile = new File(exeFile);
-        try {
-            Process p = rt.exec(cmd); 
-            try{
-                Thread.sleep(2000);
-                int r = p.exitValue();
-                DataInputStream dis = new DataInputStream(p.getInputStream());
-                int x;
-                FileOutputStream fos = new FileOutputStream(f);
-                while((x = dis.read())!=-1){
-                    fos.write(x);
-                }
-                fos.close();
-                Process p1 = rt.exec("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName);            
-                //System.out.println("----------------------------------");
-                //System.out.println("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName);
-                //System.out.println("----------------------------------");
-                p1.waitFor();
-                int q = p1.exitValue();                
-                
-                if(r==0&&q==0){
-                    message = "Execution successful";
-                    Connection conn = (Connection) getServletContext().getAttribute("dbconn");
-                    //1st part: get maximum test id
-                    String sql = "select max(testid) from moodle.mdl_prg_ques;";
-                    PreparedStatement ps = conn.prepareStatement(sql);
-                    ResultSet rs = ps.executeQuery();
-                    rs.next();
-                    int testID = rs.getInt(1);
-                    // 2nd part: Check if already completed
-                    sql = "select * from moodle.mdl_prg_test"+testID+" where qno=? and username=?";
-                    ps = conn.prepareStatement(sql);
-                    ps.setInt(1, qno);
-                    ps.setString(2, username);
-                    rs = ps.executeQuery();
-                    if(!rs.next()){
-                        //3rd part: insert into test<id> table that question is completed
-                        sql = "insert into moodle.mdl_prg_test"+testID+" values (?,?,?)";
-                        ps = conn.prepareStatement(sql);
-                        ps.setInt(1, qno);                    
-                        ps.setString(2, username);                        
-                        ps.setString(3,code);
-                        ps.executeUpdate();
+            Runtime rt = Runtime.getRuntime();
+            String exeFile = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
+            File f = new File(SOURCE_FILE_BASE_PATH+programOutputFileName);
+            try {
+                f.createNewFile();
+            } catch (IOException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            }   
+            String cmd = SOURCE_FILE_BASE_PATH+outputFileName+".exe";
+            //System.out.println("------------------------------------");
+            //System.out.println(cmd);
+            //System.out.println("------------------------------------");
+            File opFile = new File(exeFile);
+            File testCaseFile = new File(CODE_TEMPLATE_PATH+"c\\i"+qno+".txt");
+            try {
+                ProcessBuilder pb = new ProcessBuilder(cmd);
+                pb.redirectInput(testCaseFile);
+                Process p = pb.start();
+                try{
+                    Thread.sleep(2000);
+                    int r = p.exitValue();
+                    //System.out.println("------------------------------------");
+                    //System.out.println("Program exit status "+r);
+                    //System.out.println("------------------------------------");
+                    DataInputStream dis = new DataInputStream(p.getInputStream());
+                    int x;
+                    FileOutputStream fos = new FileOutputStream(f);
+                    while((x = dis.read())!=-1){
+                        fos.write(x);
                     }
-                    //PreparedStatement ps = conn.prepareStatement(sql);
+                    fos.close();
+                    Process p1 = rt.exec("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName+" /W");
+                    //System.out.println("----------------------------------");
+                    //System.out.println("fc "+SOURCE_FILE_BASE_PATH+programOutputFileName+" "+CODE_TEMPLATE_PATH+"c\\"+expectedOutputFileName);
+                    //System.out.println("----------------------------------");
+                    p1.waitFor();
+                    int q = p1.exitValue();
+                    //System.out.println("------------------------------------");
+                    //System.out.println("fc exit status "+q);
+                    //System.out.println("------------------------------------");
+                    if(r==0&&q==0){
+                        message = "Execution successful";
+                        Connection conn = (Connection) getServletContext().getAttribute("dbconn");
+                        //1st part: get maximum test id
+                        String sql = "select max(testid) from moodle.mdl_prg_ques;";
+                        PreparedStatement ps = conn.prepareStatement(sql);
+                        ResultSet rs = ps.executeQuery();
+                        rs.next();
+                        int testID = rs.getInt(1);
+                        // 2nd part: Check if already completed
+                        sql = "select * from moodle.mdl_prg_test"+testID+" where qno=? and username=?";
+                        ps = conn.prepareStatement(sql);
+                        ps.setInt(1, qno);
+                        ps.setString(2, username);
+                        rs = ps.executeQuery();
+                        if(!rs.next()){
+                            //3rd part: insert into test<id> table that question is completed
+                            sql = "insert into moodle.mdl_prg_test"+testID+" values (?,?,?)";
+                            ps = conn.prepareStatement(sql);
+                            ps.setInt(1, qno);
+                            ps.setString(2, username);
+                            ps.setString(3,code);
+                            ps.executeUpdate();
+                        }
+                        //PreparedStatement ps = conn.prepareStatement(sql);
+                        if(opFile.exists()){
+                            opFile.delete();
+                        }
+                        return true;
+                    }
+                }catch(IllegalThreadStateException e){
+                    p.destroy();
                     if(opFile.exists()){
                         opFile.delete();
                     }
-                    return true;                    
-                }                
-            }catch(IllegalThreadStateException e){                
-                p.destroy();
-                if(opFile.exists()){
-                    opFile.delete();
+                    //e.printStackTrace();                    
+                    message = "Time Limit exceeded";
+                    return false;
+                } catch (SQLException ex) {
+                    Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                message = "Time Limit exceeded";
-                return false;
-            } catch (SQLException ex) {
+            } catch (IOException ex) {
                 Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        } catch (IOException ex) {
-            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (InterruptedException ex) {
-            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        message = "Test case failed";
+            } catch (InterruptedException ex) {
+                Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            }   message = "Test case failed";
         if(opFile.exists()){
-             opFile.delete();
-        }
-        if(f.exists())
+            opFile.delete();
+        }   if(f.exists())
             f.delete();
         return false;
+        } catch (Exception ex) {
+            Logger.getLogger(Compiler.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        } finally {
+            
+        }
     }
     /*
     private void getOutput(){
