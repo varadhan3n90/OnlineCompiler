@@ -27,11 +27,22 @@
         </style>
         <script type="text/javascript" lang="javascript" src="js/jquery.js"></script>
         <script type="text/javascript" lang="javascript">
+            $.ajaxSetup({async:false});
+            var codePadEditor;
             function init(){
                 $('#loader').hide();
                 $('#tick').hide();
+                //$.ajaxSetup({async:false});
                 getQIDs();
                 getDefaultSnipetAndQuestion();
+                //$.ajaxSetup({async:true});
+                var editor = CodeMirror.fromTextArea(document.getElementById("code"), {
+                  mode: "text/x-csrc",
+                  styleActiveLine: true,
+                  lineNumbers: true,
+                  lineWrapping: true
+                });
+                codePadEditor = editor;
             }
             function checkIsCompleted(){ 
                 //alert('ck complete')
@@ -69,7 +80,7 @@
             }
             function getQuestion(qid){
                 
-                $.ajaxSetup({async:false});
+                //$.ajaxSetup({async:false});
                 $.get('/OnlineCompiler/Question',{q:qid}).done(function(data){
                     var qAndL = data.split('@#@');
                     document.getElementById('questions').innerHTML = qAndL[0];
@@ -80,14 +91,16 @@
                     }
                 });
                 
-                $.ajaxSetup({async:true});
+                //$.ajaxSetup({async:true});
                 
             }
             function postCode(){
                 $('#submit').hide();
                 $('#loader').show();
+                codePadEditor.save();
                 document.getElementById('status').innerHTML = "";
                 var codePart = document.getElementById('code').value;
+                //alert(codePart);
                 var lang = document.getElementById('lang').value;
                 var ques = document.getElementById('qid').value;
                 document.getElementById('lang').setAttribute("disabled","true");
@@ -101,15 +114,53 @@
                 });
                 
             }
-            function changeQuestion(){                
+            function changeQuestion(){
+                codePadEditor.toTextArea();
                 getQuestion(document.getElementById('qid').value);
-                getCodeTemplate(document.getElementById('qid').value,document.getElementById('lang').value);
+                getCodeTemplate(document.getElementById('qid').value,document.getElementById('lang').value);                
+                codePadEditor = CodeMirror.fromTextArea(document.getElementById("code"), {
+                  mode: "text/x-csrc",
+                  styleActiveLine: true,
+                  lineNumbers: true,
+                  lineWrapping: true
+                });
                 $('#tick').hide();
                 document.getElementById('status').innerHTML = "";
             }
             
+            function saveCodeToDB(){
+                codePadEditor.save();
+                var codePart = document.getElementById('code').value;
+                alert('Saving code to database');
+                var qid = document.getElementById('qid').value;                
+                $.get('/OnlineCompiler/SaveUserCode',{code:codePart,qid:qid,load:0}) .done(function( data ) {
+                    alert(data);
+                });
+            }
             
-        </script>        
+            function loadCodeFromDB(){
+                codePadEditor.toTextArea();
+                var qid = document.getElementById('qid').value;
+                $.get('/OnlineCompiler/SaveUserCode',{qid:qid,load:1}) .done(function( data ) {
+                    document.getElementById('code').value=data;                    
+                });
+                codePadEditor = CodeMirror.fromTextArea(document.getElementById("code"), {
+                  mode: "text/x-csrc",
+                  styleActiveLine: true,
+                  lineNumbers: true,
+                  lineWrapping: true
+                });
+                
+            }
+        </script>
+        
+        <script src="js/codemirror/lib/codemirror.js"></script>
+        <link rel="stylesheet" href="js/codemirror/lib/codemirror.css">
+        <script src="js/codemirror/mode/javascript/javascript.js"></script>
+        <script src="js/codemirror/mode/clike/clike.js"></script>
+        <script src="js/codemirror/addon/selection/active-line.js"></script>        
+        <link rel=stylesheet href="js/codemirror/doc/docs.css">
+        
     </head>
     
     <body onload="init();">
@@ -122,14 +173,14 @@
                 <select id="qid" onchange="changeQuestion();">
             </select></p>
             <h3>Question</h3>
-            <p id="questions"></p>        
+            <p id="questions"></p> 
             <textarea name="code" id="code" rows="20" cols="100"></textarea>
-            <p>Select language: <select id="lang" onchange="changeQuestion();"></select></p><p><input type="button" value="Compile"  onclick="postCode();" id="submit"></p>            
+            <p>Select language: <select id="lang" onchange="changeQuestion();"></select></p><p><input type="button" value="Compile"  onclick="postCode();" id="submit"><input type="button" value="Save code" onclick="saveCodeToDB();"><input type="button" onclick="loadCodeFromDB();" value="Load Saved Code"></p>            
             <p id="loader"><img src="/OnlineCompiler/images/loading.gif" >Compiling and executing.. Please wait..</p>
             <p><img src="/OnlineCompiler/images/completed.png" id="tick">
             <div id="status"></div></p>
-        <p> NOTE: Code is not saved in our system so please save in your local system in case you want to switch to different question before completion of current.</p>
-        <p class="warning"> Your main function should always return 0 for successfull execution</p>
+        <p> </p>
+        <p class="warning"> Your main function should always return 0 for successful execution</p>
         </form>
     </body>
 </html>
