@@ -28,6 +28,10 @@
         <servlet-name>CheckCompleted</servlet-name>
         <servlet-class>compiler.CheckCompleted</servlet-class>
     </servlet>
+    <servlet>
+        <servlet-name>SaveUserCode</servlet-name>
+        <servlet-class>compiler.SaveUserCode</servlet-class>
+    </servlet>
     <servlet-mapping>
         <servlet-name>Compiler</servlet-name>
         <url-pattern>/Compiler</url-pattern>
@@ -55,6 +59,10 @@
     <servlet-mapping>
         <servlet-name>CheckCompleted</servlet-name>
         <url-pattern>/CheckCompleted</url-pattern>
+    </servlet-mapping>
+    <servlet-mapping>
+        <servlet-name>SaveUserCode</servlet-name>
+        <url-pattern>/SaveUserCode</url-pattern>
     </servlet-mapping>
     <session-config>
         <session-timeout>

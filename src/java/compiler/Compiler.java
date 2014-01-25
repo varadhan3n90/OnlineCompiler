@@ -124,8 +124,9 @@ public class Compiler extends HttpServlet {
                 }
                 sourceFile.delete();
                 return false;
+            }else{
+                message = "Compile success";
             }
-            message = "Compile success";
             sourceFile.delete();
             return true;
         } catch (IOException ex) {

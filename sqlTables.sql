@@ -18,3 +18,4 @@ CREATE TABLE `mdl_prg_test1` (
   `code` varchar(8000) COLLATE utf8_unicode_ci DEFAULT NULL
 )
 
+create table moodle.mdl_prg_save (tid integer,qid integer, username varchar(20),code varchar(3000));
